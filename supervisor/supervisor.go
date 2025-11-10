@@ -82,7 +82,7 @@ func (s *Supervisor) CheckForUpdate(ctx context.Context) (update *semver.Version
 		return
 	}
 
-	latest := allVersions[0]
+	latest := allVersions[len(allVersions)-1]
 
 	if latest.GreaterThan(s.currentVersion) {
 		// Update available

@@ -83,10 +83,6 @@ func (r *Client) Versions(ctx context.Context) ([]semver.Version, error) {
 		versions = append(versions, *v)
 	}
 
-	slices.SortFunc(versions, func(i, j semver.Version) int {
-		return i.Compare(&j)
-	})
-
 	return versions, nil
 }
 
@@ -102,7 +98,7 @@ func (r *Client) CheckForUpdate(ctx context.Context) (update *semver.Version, al
 		return
 	}
 
-	latest := allVersions[0]
+	latest := allVersions[len(allVersions)-1]
 
 	if latest.GreaterThan(r.currentVersion) {
 		// Update available
