@@ -57,6 +57,10 @@ if err := knockknock.Client().Update(context.Background(), selectedVersion); err
 }
 ```
 
+## Publishing Updates
+
+New versions of the binary are published to an OCI compliant registry using ORAS. See [publish.sh](example/publish.sh) as a reference. Once published the new version will be picked up by knockknock.
+
 ## How it works
 
 1. Your application receives an update request (via gRPC, HTTP, or any other mechanism)
@@ -70,8 +74,6 @@ if err := knockknock.Client().Update(context.Background(), selectedVersion); err
 ## Automatic Rollbacks
 
 knockknock monitors the child process lifecycle. If your application crashes repeatedly (e.g., 5 times in short succession), it automatically rolls back to the previous version. No manual intervention required.
-
-## Architecture
 
 ## Architecture
 
