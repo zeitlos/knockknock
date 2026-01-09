@@ -12,9 +12,9 @@ A self-updating supervisor for Go binaries. knockknock wraps your application an
 - **Version management**: Multiple versions stored on disk for easy rollback
 - **IPC communication**: Clean separation between application and update logic
 - **No external dependencies**: Everything lives in one binary
+- **Legacy migration**: Seamlessly upgrades existing non-knockknock installations
 
 ## Usage
-
 ```go
 package main
 
@@ -39,8 +39,20 @@ func run() {
 }
 ```
 
-### Checking for updates
+### Configuration
+```go
+config.New("myapp").
+	WithRepo("ghcr.io/myorg/myapp").    // OCI registry repository
+	WithVersion(Version).                // Current version (typically set via ldflags)
+	WithBinaryDir("/usr/local/bin").     // Where the executable symlink lives (default)
+	WithVersionsDir("/usr/local/share"). // Where version data is stored (default)
+	WithAuth(&config.AuthConfig{         // Optional registry authentication
+		Username: "user",
+		Password: "pass",
+	})
+```
 
+### Checking for updates
 ```go
 update, versions, err := knockknock.Client().CheckForUpdate(r.Context())
 
@@ -50,7 +62,6 @@ if err != nil {
 ```
 
 ### Triggering an update
-
 ```go
 if err := knockknock.Client().Update(context.Background(), selectedVersion); err != nil {
 	slog.Error("failed to update", "error", err)
@@ -67,16 +78,40 @@ New versions of the binary are published to an OCI compliant registry using ORAS
 2. It calls `knockknock.Client().Update()` to forward the request via Unix socket IPC
 3. knockknock downloads the new version from an OCI registry using ORAS
 4. It creates a backup symlink to the current version
-5. It atomically swaps `/opt/<app-name>/current` to point to the new version
+5. It atomically swaps the `current` symlink to point to the new version
 6. It stops your application, causing the process manager to restart it with the new binary
 
+### Directory structure
+
+After installation, knockknock maintains the following structure:
+```
+/usr/local/bin/myapp  →  /usr/local/share/myapp/current/myapp
+
+/usr/local/share/myapp/
+  ├── current  →  versions/1.2.3
+  ├── previous-20260109-104500  →  versions/1.2.2
+  └── versions/
+      ├── 1.2.3/
+      │   └── myapp
+      └── 1.2.2/
+          └── myapp
+```
+
+## Migrating from legacy installations
+
+knockknock automatically handles the migration from traditional binary installations. If your binary at `/usr/local/bin/myapp` is a regular file (not a symlink), the first update will:
+
+1. Move the existing binary to `/usr/local/share/myapp/versions/legacy/myapp`
+2. Create a backup symlink so you can roll back to it
+3. Set up the new symlink-based structure
+
+This means you can adopt knockknock without any manual migration steps—just deploy the knockknock-enabled version and the next update will handle everything.
 
 ## Automatic Rollbacks
 
 knockknock monitors the child process lifecycle. If your application crashes repeatedly (e.g., 5 times in short succession), it automatically rolls back to the previous version. No manual intervention required.
 
 ## Architecture
-
 ```
 process manager (e.g. systemd)
   └─ knockknock (supervisor, listens on Unix socket)

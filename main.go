@@ -27,7 +27,7 @@ func Run(config *config.Config, userMain func()) {
 
 	// Check if we're the supervisor or the child
 	if supervisor.IsSupervisorProcess() {
-		slog.Info("running as supervisor", "pid", os.Getpid(), "version", config.Version, "installationDir", config.InstallationDir)
+		slog.Info("running as supervisor", "pid", os.Getpid(), "version", config.Version, "installationDir", config.BinaryDir)
 
 		sv, err := supervisor.New(config)
 
